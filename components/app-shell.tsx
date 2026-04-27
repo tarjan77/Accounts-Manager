@@ -35,8 +35,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-mist lg:grid lg:h-screen lg:grid-cols-[264px_1fr] lg:overflow-hidden">
-      <aside className="hidden border-r border-line bg-white/98 lg:flex lg:h-screen lg:min-h-0 lg:flex-col">
+    <div className="min-h-screen bg-mist lg:h-screen lg:min-h-0 lg:overflow-hidden">
+      <aside className="hidden border-r border-line bg-white/98 lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-[264px] lg:flex-col">
         <div className="border-b border-line p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-600">
             Shree
@@ -68,7 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="shrink-0 border-t border-line p-4">
+        <div className="mt-auto shrink-0 border-t border-line p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
               {initials}
@@ -86,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="min-w-0 pb-20 lg:h-screen lg:min-h-0 lg:overflow-y-auto lg:pb-0">
+      <div className="min-w-0 pb-20 lg:fixed lg:inset-y-0 lg:left-[264px] lg:right-0 lg:overflow-y-auto lg:overscroll-contain lg:pb-0">
         <header className="sticky top-0 z-20 border-b border-line bg-white/94 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <div>
