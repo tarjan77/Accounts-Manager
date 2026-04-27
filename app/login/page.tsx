@@ -66,13 +66,22 @@ export default function LoginPage() {
   async function handleGoogleSignIn() {
     setError("");
     setSubmitting(true);
+    let isRedirecting = false;
+
     try {
-      await signInWithGoogle();
-      router.replace("/dashboard");
+      const signInMethod = await signInWithGoogle();
+
+      if (signInMethod === "popup") {
+        router.replace("/dashboard");
+      } else {
+        isRedirecting = true;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in with Google.");
     } finally {
-      setSubmitting(false);
+      if (!isRedirecting) {
+        setSubmitting(false);
+      }
     }
   }
 

@@ -6,6 +6,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut
 } from "firebase/auth";
 import {
@@ -21,13 +22,22 @@ import { googleProvider, requireAuth, auth } from "@/lib/firebase";
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<"popup" | "redirect">;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   registerWithEmail: (email: string, password: string) => Promise<void>;
   signOutUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function isFirebaseAuthCode(error: unknown, code: string) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === code
+  );
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -46,7 +56,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    await signInWithPopup(requireAuth(), googleProvider);
+    const currentAuth = requireAuth();
+
+    try {
+      await signInWithPopup(currentAuth, googleProvider);
+      return "popup";
+    } catch (error) {
+      if (isFirebaseAuthCode(error, "auth/popup-blocked")) {
+        await signInWithRedirect(currentAuth, googleProvider);
+        return "redirect";
+      }
+
+      throw error;
+    }
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {

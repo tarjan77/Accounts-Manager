@@ -35,8 +35,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-mist lg:grid lg:grid-cols-[264px_1fr]">
-      <aside className="hidden border-r border-line bg-white/98 lg:flex lg:flex-col">
+    <div className="min-h-screen bg-mist lg:grid lg:h-screen lg:grid-cols-[264px_1fr] lg:overflow-hidden">
+      <aside className="hidden border-r border-line bg-white/98 lg:flex lg:h-screen lg:min-h-0 lg:flex-col">
         <div className="border-b border-line p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-600">
             Shree
@@ -46,7 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </h1>
         </div>
 
-        <nav className="flex-1 space-y-1 p-4">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-hidden p-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -68,7 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="border-t border-line p-4">
+        <div className="shrink-0 border-t border-line p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
               {initials}
@@ -86,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="min-w-0 pb-20 lg:pb-0">
+      <div className="min-w-0 pb-20 lg:h-screen lg:min-h-0 lg:overflow-y-auto lg:pb-0">
         <header className="sticky top-0 z-20 border-b border-line bg-white/94 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <div>
