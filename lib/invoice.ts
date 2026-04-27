@@ -1,7 +1,9 @@
 "use client";
 
 import jsPDF from "jspdf";
+import { formatAddressLines } from "@/lib/address";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
+import { lineItemTotal, normalizeLineItems } from "@/lib/job-items";
 import type { Customer, Job } from "@/lib/types";
 
 const businessLines = [
@@ -66,23 +68,23 @@ export async function generateInvoicePdf({
   if (logoDataUrl) {
     try {
       const image = doc.getImageProperties(logoDataUrl);
-      const maxWidth = 42;
-      const maxHeight = 24;
+      const maxWidth = 54;
+      const maxHeight = 34;
       const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
       const width = image.width * scale;
       const height = image.height * scale;
-      doc.addImage(logoDataUrl, imageFormat(logoDataUrl), margin, 14, width, height);
+      doc.addImage(logoDataUrl, imageFormat(logoDataUrl), margin, 9, width, height);
     } catch {
       // A failed logo must never block invoice generation.
     }
   }
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(8.5);
   doc.setTextColor(23, 32, 28);
-  drawTextBlock(doc, businessLines, pageWidth - margin, 14, {
+  drawTextBlock(doc, businessLines, pageWidth - margin, 11, {
     align: "right",
-    lineHeight: 4.2
+    lineHeight: 3.8
   });
 
   doc.setFont("helvetica", "bold");
@@ -97,11 +99,11 @@ export async function generateInvoicePdf({
   doc.text(`Invoice Date: ${formatDate(invoiceDate)}`, margin, 84);
   doc.text(`Due Date: ${formatDate(invoiceDate)}`, margin, 90);
 
+  const customerName = customer?.name || job.customerName || "Customer";
   const customerLines = [
-    customer?.name || job.customerName || "Customer",
     customer?.phone ? `Phone: ${customer.phone}` : "",
     customer?.email ? `Email: ${customer.email}` : "",
-    customer?.address || ""
+    ...formatAddressLines(customer)
   ].filter(Boolean);
 
   doc.setFillColor(255, 255, 255);
@@ -113,34 +115,50 @@ export async function generateInvoicePdf({
   doc.setTextColor(23, 32, 28);
   doc.text("Bill To", margin + 6, 114);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
+  doc.text(customerName, margin + 6, 122);
+
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(61, 72, 67);
-  drawTextBlock(doc, customerLines, margin + 6, 122, { lineHeight: 4.8 });
+  drawTextBlock(doc, customerLines, margin + 6, 128, { lineHeight: 4.8 });
 
   const tableTop = 154;
+  const items = normalizeLineItems(job);
+  const rowHeight = 13;
+  const tableHeight = rowHeight * items.length;
+  const tableWidth = pageWidth - margin * 2;
   doc.setFillColor(33, 125, 95);
-  doc.roundedRect(margin, tableTop, pageWidth - margin * 2, 11, 2, 2, "F");
+  doc.rect(margin, tableTop, tableWidth, 11, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(255, 255, 255);
-  doc.text("Service", margin + 6, tableTop + 7);
+  doc.text("#", margin + 6, tableTop + 7);
+  doc.text("Service", margin + 18, tableTop + 7);
+  doc.text("Qty", pageWidth - 73, tableTop + 7, { align: "right" });
+  doc.text("Rate", pageWidth - 48, tableTop + 7, { align: "right" });
   doc.text("Amount", pageWidth - margin - 6, tableTop + 7, { align: "right" });
 
   doc.setDrawColor(221, 230, 225);
   doc.setFillColor(255, 255, 255);
-  doc.rect(margin, tableTop + 11, pageWidth - margin * 2, 30, "FD");
+  doc.rect(margin, tableTop + 11, tableWidth, tableHeight, "FD");
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(23, 32, 28);
-  const description = doc.splitTextToSize(job.serviceDescription, 120) as string[];
-  doc.text(description, margin + 6, tableTop + 22);
-  doc.text(formatCurrency(job.price), pageWidth - margin - 6, tableTop + 22, {
-    align: "right"
+  items.forEach((item, index) => {
+    const y = tableTop + 21 + index * rowHeight;
+    const description = doc.splitTextToSize(item.description, 100) as string[];
+    doc.text(String(index + 1), margin + 6, y);
+    doc.text(description, margin + 18, y);
+    doc.text(String(item.quantity), pageWidth - 73, y, { align: "right" });
+    doc.text(formatCurrency(item.unitPrice), pageWidth - 48, y, { align: "right" });
+    doc.text(formatCurrency(lineItemTotal(item)), pageWidth - margin - 6, y, {
+      align: "right"
+    });
   });
 
-  const totalTop = tableTop + 52;
+  const totalTop = tableTop + tableHeight + 26;
   doc.setFillColor(244, 248, 246);
   doc.roundedRect(pageWidth - 82, totalTop, 64, 24, 2, 2, "F");
   doc.setFont("helvetica", "normal");
@@ -150,7 +168,7 @@ export async function generateInvoicePdf({
   doc.setFont("helvetica", "bold");
   doc.setFontSize(17);
   doc.setTextColor(23, 32, 28);
-  doc.text(formatCurrency(job.price), pageWidth - margin - 6, totalTop + 18, {
+  doc.text(formatCurrency(items.reduce((total, item) => total + lineItemTotal(item), 0)), pageWidth - margin - 6, totalTop + 18, {
     align: "right"
   });
 

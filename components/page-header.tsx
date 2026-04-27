@@ -15,7 +15,7 @@ export function PageHeader({
         </p>
       ) : null}
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <h2 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+        <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           {title}
         </h2>
         {children ? <div className="flex flex-wrap gap-2">{children}</div> : null}

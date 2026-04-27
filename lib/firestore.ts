@@ -6,7 +6,9 @@ import {
   serverTimestamp,
   updateDoc
 } from "firebase/firestore";
+import { lineItemsTotal, normalizeLineItems, summarizeLineItems } from "@/lib/job-items";
 import { requireDb } from "@/lib/firebase";
+import { normalizeCustomerInput } from "@/lib/address";
 import type { CustomerInput, JobInput, PaymentMethod } from "@/lib/types";
 
 export function customersPath(userId: string) {
@@ -18,9 +20,9 @@ export function jobsPath(userId: string) {
 }
 
 export async function createCustomer(userId: string, input: CustomerInput) {
+  const normalized = normalizeCustomerInput(input);
   const ref = await addDoc(customersPath(userId), {
-    ...input,
-    email: input.email || "",
+    ...normalized,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
@@ -33,9 +35,9 @@ export async function updateCustomer(
   customerId: string,
   input: CustomerInput
 ) {
+  const normalized = normalizeCustomerInput(input);
   await updateDoc(doc(requireDb(), "users", userId, "customers", customerId), {
-    ...input,
-    email: input.email || "",
+    ...normalized,
     updatedAt: serverTimestamp()
   });
 }
@@ -45,11 +47,15 @@ export async function deleteCustomer(userId: string, customerId: string) {
 }
 
 export async function createJob(userId: string, input: JobInput) {
+  const lineItems = normalizeLineItems(input);
   const ref = await addDoc(jobsPath(userId), {
     ...input,
-    price: Number(input.price) || 0,
+    lineItems,
+    serviceDescription: input.serviceDescription || summarizeLineItems(lineItems),
+    price: lineItemsTotal(lineItems),
     time: input.time || "",
     notes: input.notes || "",
+    jobStatus: input.jobStatus || "Scheduled",
     paymentMethod: input.paymentMethod || "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -59,11 +65,15 @@ export async function createJob(userId: string, input: JobInput) {
 }
 
 export async function updateJob(userId: string, jobId: string, input: JobInput) {
+  const lineItems = normalizeLineItems(input);
   await updateDoc(doc(requireDb(), "users", userId, "jobs", jobId), {
     ...input,
-    price: Number(input.price) || 0,
+    lineItems,
+    serviceDescription: input.serviceDescription || summarizeLineItems(lineItems),
+    price: lineItemsTotal(lineItems),
     time: input.time || "",
     notes: input.notes || "",
+    jobStatus: input.jobStatus || "Scheduled",
     paymentMethod: input.paymentMethod || "",
     updatedAt: serverTimestamp()
   });
@@ -80,8 +90,17 @@ export async function markPaymentReceived(
 ) {
   await updateDoc(doc(requireDb(), "users", userId, "jobs", jobId), {
     paymentStatus: "Paid",
+    jobStatus: "Completed",
     paymentMethod: paymentMethod || "Bank Transfer",
     paidAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+}
+
+export async function markJobCompleted(userId: string, jobId: string) {
+  await updateDoc(doc(requireDb(), "users", userId, "jobs", jobId), {
+    jobStatus: "Completed",
+    completedAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
 }

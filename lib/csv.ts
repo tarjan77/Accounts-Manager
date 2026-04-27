@@ -1,4 +1,5 @@
 import type { Customer, Job } from "@/lib/types";
+import { summarizeLineItems } from "@/lib/job-items";
 
 function escapeCsv(value: string | number) {
   const text = String(value ?? "");
@@ -19,15 +20,25 @@ export function exportJobsCsv(jobs: Job[], customers: Customer[]) {
       customer?.name || job.customerName,
       job.date,
       job.time || "",
-      job.serviceDescription,
+      summarizeLineItems(job.lineItems),
       job.price.toFixed(2),
+      job.jobStatus,
       job.paymentStatus,
       job.paymentMethod || ""
     ];
   });
 
   const csv = [
-    ["Customer", "Date", "Time", "Service", "Price", "Payment status", "Payment method"],
+    [
+      "Customer",
+      "Date",
+      "Time",
+      "Service",
+      "Price",
+      "Job status",
+      "Payment status",
+      "Payment method"
+    ],
     ...rows
   ]
     .map((row) => row.map(escapeCsv).join(","))

@@ -3,12 +3,18 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
+import {
+  CalendarIcon,
+  DownloadIcon,
+  LayoutIcon,
+  UsersIcon
+} from "@/components/icons";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/customers", label: "Customers" },
-  { href: "/jobs", label: "Jobs" },
-  { href: "/export", label: "Export" }
+  { href: "/dashboard", label: "Dashboard", icon: LayoutIcon },
+  { href: "/jobs", label: "Schedule", icon: CalendarIcon },
+  { href: "/customers", label: "Clients", icon: UsersIcon },
+  { href: "/export", label: "Export", icon: DownloadIcon }
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -29,22 +35,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-mist lg:grid lg:grid-cols-[248px_1fr]">
-      <aside className="hidden border-r border-line bg-white lg:flex lg:flex-col">
+    <div className="min-h-screen bg-mist lg:grid lg:grid-cols-[264px_1fr]">
+      <aside className="hidden border-r border-line bg-white/98 lg:flex lg:flex-col">
         <div className="border-b border-line p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-600">
             Shree
           </p>
-          <h1 className="mt-1 text-xl font-semibold text-ink">Cleaning Manager</h1>
+          <h1 className="mt-1 text-xl font-semibold tracking-tight text-ink">
+            Cleaning Manager
+          </h1>
         </div>
 
         <nav className="flex-1 space-y-1 p-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const Icon = item.icon;
 
             return (
               <Link
-                className={`flex min-h-11 items-center rounded-md px-3 text-sm font-semibold transition ${
+                className={`flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold transition ${
                   isActive
                     ? "bg-brand-50 text-brand-700"
                     : "text-muted hover:bg-mist hover:text-ink"
@@ -52,6 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 key={item.href}
               >
+                <Icon className="h-5 w-5" />
                 {item.label}
               </Link>
             );
@@ -80,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-20 border-b border-line bg-white/94 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">
                 Shree
               </p>
               <p className="text-base font-semibold text-ink">Cleaning Manager</p>
@@ -95,18 +105,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-white lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-white/96 shadow-[0_-10px_30px_rgba(23,32,28,0.08)] backdrop-blur lg:hidden">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const Icon = item.icon;
 
             return (
               <Link
-                className={`flex min-h-16 items-center justify-center px-2 text-center text-xs font-semibold ${
+                className={`flex min-h-16 flex-col items-center justify-center gap-1 px-2 text-center text-[11px] font-semibold ${
                   isActive ? "text-brand-700" : "text-muted"
                 }`}
                 href={item.href}
                 key={item.href}
               >
+                <span
+                  className={`flex h-8 w-10 items-center justify-center rounded-md ${
+                    isActive ? "bg-brand-50" : ""
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
                 {item.label}
               </Link>
             );

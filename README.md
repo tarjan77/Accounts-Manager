@@ -10,6 +10,14 @@ A Vercel-ready Next.js application for small cleaning businesses to manage custo
 - Hosting: Vercel free tier compatible
 - Payments: internal status tracking only, no payment gateway
 
+## Current Features
+
+- Schedule-first job board with list and calendar views
+- Dashboard quick-add job flow
+- Customer directory with structured WA address fields
+- Cleaning service builder for end of lease, deep cleaning, windows, pressure cleaning, and extras
+- Multi-line PDF invoices with quantity, unit price, and amount columns
+
 ## Folder Structure
 
 ```text

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { normalizeLineItems } from "@/lib/job-items";
 import type { Customer, Job } from "@/lib/types";
 
 type DataState<T> = {
@@ -45,7 +46,12 @@ export function useCustomers(userId?: string) {
               name: String(value.name || ""),
               phone: String(value.phone || ""),
               email: String(value.email || ""),
-              address: String(value.address || "")
+              address: String(value.address || ""),
+              addressLine1: String(value.addressLine1 || value.address || ""),
+              addressLine2: String(value.addressLine2 || ""),
+              suburb: String(value.suburb || ""),
+              state: String(value.state || "WA"),
+              postcode: String(value.postcode || "")
             };
           }),
           loading: false,
@@ -82,17 +88,28 @@ export function useJobs(userId?: string) {
           data: snapshot.docs.map((document) => {
             const value = document.data();
 
-            return {
+            const job = {
               id: document.id,
               customerId: String(value.customerId || ""),
               customerName: String(value.customerName || ""),
+              serviceType: value.serviceType || "Custom",
               serviceDescription: String(value.serviceDescription || ""),
+              lineItems: Array.isArray(value.lineItems) ? value.lineItems : [],
               price: Number(value.price || 0),
               date: String(value.date || ""),
               time: String(value.time || ""),
               notes: String(value.notes || ""),
+              jobStatus:
+                value.jobStatus === "Completed" || value.paymentStatus === "Paid"
+                  ? "Completed"
+                  : "Scheduled",
               paymentStatus: value.paymentStatus === "Paid" ? "Paid" : "Unpaid",
               paymentMethod: String(value.paymentMethod || "") as Job["paymentMethod"]
+            } satisfies Job;
+
+            return {
+              ...job,
+              lineItems: normalizeLineItems(job)
             };
           }),
           loading: false,

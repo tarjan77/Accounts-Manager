@@ -5,6 +5,7 @@ import { useAuth } from "@/components/auth-provider";
 import { exportJobsCsv } from "@/lib/csv";
 import { formatCurrency } from "@/lib/format";
 import { useCustomers, useJobs } from "@/lib/hooks";
+import { lineItemsTotal } from "@/lib/job-items";
 
 export function ExportPage() {
   const { user } = useAuth();
@@ -12,10 +13,10 @@ export function ExportPage() {
   const jobs = useJobs(user?.uid);
   const paidTotal = jobs.data
     .filter((job) => job.paymentStatus === "Paid")
-    .reduce((total, job) => total + job.price, 0);
+    .reduce((total, job) => total + lineItemsTotal(job.lineItems), 0);
   const unpaidTotal = jobs.data
     .filter((job) => job.paymentStatus === "Unpaid")
-    .reduce((total, job) => total + job.price, 0);
+    .reduce((total, job) => total + lineItemsTotal(job.lineItems), 0);
 
   return (
     <>
@@ -25,7 +26,7 @@ export function ExportPage() {
         <div className="card p-5">
           <h3 className="text-lg font-semibold text-ink">CSV export</h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-            Download all jobs with customer, date, time, service, price, payment status, and payment method.
+            Download all jobs with customer, date, time, service, price, job status, payment status, and payment method.
           </p>
           <button
             className="btn-primary mt-5"
