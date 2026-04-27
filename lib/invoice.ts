@@ -4,7 +4,7 @@ import jsPDF from "jspdf";
 import { formatAddressLines } from "@/lib/address";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
 import { lineItemTotal, normalizeLineItems } from "@/lib/job-items";
-import type { Customer, Job } from "@/lib/types";
+import type { Customer, InvoiceLineItem, Job } from "@/lib/types";
 
 const businessLines = [
   "Shree Cleaning",
@@ -45,6 +45,62 @@ function drawTextBlock(
   lines.forEach((line, index) => {
     doc.text(line, x, y + index * lineHeight, { align: options?.align || "left" });
   });
+}
+
+function countLabel(count: number | undefined, singular: string) {
+  if (count === undefined || count === null) {
+    return "";
+  }
+
+  const value = Number(count) || 0;
+  return `${value} ${singular}${value === 1 ? "" : "s"}`;
+}
+
+function stripServicePrefix(description: string, serviceType: string) {
+  const trimmed = description.trim();
+  const prefix = `${serviceType} - `;
+
+  return trimmed.startsWith(prefix) ? trimmed.slice(prefix.length).trim() : trimmed;
+}
+
+function invoiceServiceLines(job: Job, item: InvoiceLineItem, index: number) {
+  const description = item.description.trim();
+  const isPrimaryService = item.id === "base-service" || index === 0;
+
+  if (!isPrimaryService || !job.serviceType || job.serviceType === "Custom") {
+    return [description || "Cleaning service"];
+  }
+
+  if (job.serviceType === "Window Cleaning") {
+    return [
+      "Window Cleaning",
+      stripServicePrefix(description, "Window Cleaning") || "Window package"
+    ];
+  }
+
+  if (job.serviceType === "End of Lease / Vacate" || job.serviceType === "Deep Cleaning") {
+    const propertyDetails = [
+      job.propertyType || "",
+      countLabel(job.bedrooms, "bedroom"),
+      countLabel(job.bathrooms, "bathroom")
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    return [
+      job.serviceType,
+      propertyDetails || stripServicePrefix(description, job.serviceType)
+    ].filter(Boolean);
+  }
+
+  if (job.serviceType === "Pressure Cleaning") {
+    return [
+      "Pressure Cleaning",
+      stripServicePrefix(description, "Pressure Cleaning") || "Site visit required"
+    ];
+  }
+
+  return [description || job.serviceType];
 }
 
 export async function generateInvoicePdf({
@@ -97,7 +153,9 @@ export async function generateInvoicePdf({
   doc.setTextColor(102, 115, 109);
   doc.text(`Invoice Number: ${invoiceNo}`, margin, 78);
   doc.text(`Invoice Date: ${formatDate(invoiceDate)}`, margin, 84);
-  doc.text(`Due Date: ${formatDate(invoiceDate)}`, margin, 90);
+
+  doc.setDrawColor(221, 230, 225);
+  doc.line(margin, 94, pageWidth - margin, 94);
 
   const customerName = customer?.name || job.customerName || "Customer";
   const customerLines = [
@@ -106,28 +164,40 @@ export async function generateInvoicePdf({
     ...formatAddressLines(customer)
   ].filter(Boolean);
 
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(221, 230, 225);
-  doc.roundedRect(margin, 104, pageWidth - margin * 2, 34, 2, 2, "FD");
-
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(23, 32, 28);
-  doc.text("Bill To", margin + 6, 114);
+  doc.text("Bill To", margin, 106);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.text(customerName, margin + 6, 122);
+  doc.text(customerName, margin, 115);
 
   doc.setFont("helvetica", "normal");
   doc.setTextColor(61, 72, 67);
-  drawTextBlock(doc, customerLines, margin + 6, 128, { lineHeight: 4.8 });
+  drawTextBlock(doc, customerLines, margin, 122, { lineHeight: 4.8 });
 
-  const tableTop = 154;
   const items = normalizeLineItems(job);
-  const rowHeight = 13;
-  const tableHeight = rowHeight * items.length;
+  const billToBottom = 122 + Math.max(customerLines.length - 1, 0) * 4.8 + 9;
+  doc.setDrawColor(221, 230, 225);
+  doc.line(margin, billToBottom, pageWidth - margin, billToBottom);
+
+  const tableTop = Math.max(146, billToBottom + 12);
   const tableWidth = pageWidth - margin * 2;
+  const tableRows = items.map((item, index) => {
+    const serviceLines = invoiceServiceLines(job, item, index).flatMap((line) =>
+      doc.splitTextToSize(line, 98) as string[]
+    );
+
+    return {
+      item,
+      serviceLines,
+      height: Math.max(11.5, serviceLines.length * 4.8 + 6.5)
+    };
+  });
+  const tableHeight = tableRows.reduce((total, row) => total + row.height, 0);
+  const itemsTotal = items.reduce((total, item) => total + lineItemTotal(item), 0);
+
   doc.setFillColor(33, 125, 95);
   doc.rect(margin, tableTop, tableWidth, 11, "F");
   doc.setFont("helvetica", "bold");
@@ -143,19 +213,35 @@ export async function generateInvoicePdf({
   doc.setFillColor(255, 255, 255);
   doc.rect(margin, tableTop + 11, tableWidth, tableHeight, "FD");
 
-  doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
-  doc.setTextColor(23, 32, 28);
-  items.forEach((item, index) => {
-    const y = tableTop + 21 + index * rowHeight;
-    const description = doc.splitTextToSize(item.description, 100) as string[];
-    doc.text(String(index + 1), margin + 6, y);
-    doc.text(description, margin + 18, y);
-    doc.text(String(item.quantity), pageWidth - 73, y, { align: "right" });
-    doc.text(formatCurrency(item.unitPrice), pageWidth - 48, y, { align: "right" });
-    doc.text(formatCurrency(lineItemTotal(item)), pageWidth - margin - 6, y, {
+  let rowY = tableTop + 11;
+  tableRows.forEach(({ item, serviceLines, height }, index) => {
+    const textY = rowY + 8;
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(23, 32, 28);
+    doc.text(String(index + 1), margin + 6, textY);
+
+    serviceLines.forEach((line, lineIndex) => {
+      const isMainLine = lineIndex === 0;
+      doc.setFont("helvetica", isMainLine ? "bold" : "normal");
+      doc.setTextColor(isMainLine ? 23 : 102, isMainLine ? 32 : 115, isMainLine ? 28 : 109);
+      doc.text(line, margin + 18, textY + lineIndex * 4.8);
+    });
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(23, 32, 28);
+    doc.text(String(item.quantity), pageWidth - 73, textY, { align: "right" });
+    doc.text(formatCurrency(item.unitPrice), pageWidth - 48, textY, { align: "right" });
+    doc.text(formatCurrency(lineItemTotal(item)), pageWidth - margin - 6, textY, {
       align: "right"
     });
+
+    rowY += height;
+    if (index < tableRows.length - 1) {
+      doc.setDrawColor(235, 240, 237);
+      doc.line(margin, rowY, pageWidth - margin, rowY);
+    }
   });
 
   const totalTop = tableTop + tableHeight + 26;
@@ -168,7 +254,7 @@ export async function generateInvoicePdf({
   doc.setFont("helvetica", "bold");
   doc.setFontSize(17);
   doc.setTextColor(23, 32, 28);
-  doc.text(formatCurrency(items.reduce((total, item) => total + lineItemTotal(item), 0)), pageWidth - margin - 6, totalTop + 18, {
+  doc.text(formatCurrency(itemsTotal), pageWidth - margin - 6, totalTop + 18, {
     align: "right"
   });
 

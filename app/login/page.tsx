@@ -4,6 +4,29 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { useAuth } from "@/components/auth-provider";
+import {
+  CalendarIcon,
+  FileIcon,
+  GoogleIcon,
+  LockIcon,
+  MailIcon,
+  UsersIcon
+} from "@/components/icons";
+
+const featureItems = [
+  {
+    label: "Clients",
+    Icon: UsersIcon
+  },
+  {
+    label: "Schedule",
+    Icon: CalendarIcon
+  },
+  {
+    label: "Invoices",
+    Icon: FileIcon
+  }
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -54,39 +77,53 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
-      <section className="grid w-full max-w-5xl overflow-hidden rounded-lg border border-line bg-white shadow-soft md:grid-cols-[1fr_0.95fr]">
-        <div className="flex min-h-[520px] flex-col justify-between bg-ink p-8 text-white sm:p-10">
+    <main className="flex min-h-screen items-start justify-center px-3 py-3 sm:items-center sm:px-4 sm:py-8">
+      <section className="grid w-full max-w-4xl overflow-hidden rounded-lg border border-line bg-white shadow-soft md:grid-cols-[0.9fr_1fr]">
+        <div className="bg-ink px-5 py-5 text-white sm:p-8 md:flex md:min-h-[500px] md:flex-col md:justify-between">
           <div>
-            <p className="text-sm font-semibold text-brand-100">Shree Cleaning</p>
-            <h1 className="mt-4 max-w-md text-3xl font-semibold tracking-tight sm:text-4xl">
-              Manage cleaning jobs, invoices, and payments in one calm workspace.
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.26em] text-brand-100">
+                  Shree
+                </p>
+                <p className="mt-1 text-lg font-semibold">Cleaning Manager</p>
+              </div>
+              <div className="hidden rounded-full border border-white/[0.15] bg-white/[0.08] px-3 py-1 text-xs font-semibold text-white/80 sm:block">
+                Private workspace
+              </div>
+            </div>
+
+            <h1 className="mt-4 max-w-md text-2xl font-semibold leading-tight tracking-tight sm:text-3xl md:mt-8 md:text-4xl">
+              Cleaning jobs, invoices, and payments in one place.
             </h1>
-            <p className="mt-4 max-w-md text-sm leading-6 text-white/74">
-              Built for daily use on phone or desktop, with cloud-synced customer and booking records.
+            <p className="mt-3 max-w-md text-sm leading-6 text-white/[0.72] md:mt-4">
+              Sign in to manage your synced customer records and booking schedule.
             </p>
           </div>
 
-          <div className="grid gap-3 text-sm text-white/80 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
-            <div className="rounded-md border border-white/12 bg-white/7 p-3">
-              Customer records
-            </div>
-            <div className="rounded-md border border-white/12 bg-white/7 p-3">
-              Job schedule
-            </div>
-            <div className="rounded-md border border-white/12 bg-white/7 p-3">
-              PDF invoices
-            </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 md:mt-8">
+            {featureItems.map(({ label, Icon }) => (
+              <div
+                className="flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-md border border-white/10 bg-white/[0.06] px-2 py-2 text-center text-[11px] font-semibold text-white/[0.82]"
+                key={label}
+              >
+                <Icon className="h-4 w-4 text-brand-100" />
+                <span>{label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="p-6 sm:p-10">
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-ink">
+        <div className="p-5 sm:p-8 md:p-10">
+          <div className="mb-5 sm:mb-7">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">
+              Account access
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-ink">
               {isRegistering ? "Create your account" : "Sign in"}
             </h2>
-            <p className="mt-2 text-sm text-muted">
-              Use Google or email and password. Your records stay isolated by your Firebase user ID.
+            <p className="mt-2 text-sm leading-5 text-muted">
+              Continue with Google or use your email password.
             </p>
           </div>
 
@@ -98,15 +135,16 @@ export default function LoginPage() {
           ) : null}
 
           <button
-            className="btn-secondary w-full"
+            className="btn-secondary w-full gap-3"
             disabled={!isFirebaseConfigured || submitting}
             onClick={handleGoogleSignIn}
             type="button"
           >
+            <GoogleIcon className="h-5 w-5" />
             Continue with Google
           </button>
 
-          <div className="my-6 flex items-center gap-3">
+          <div className="my-4 flex items-center gap-3 sm:my-5">
             <span className="h-px flex-1 bg-line" />
             <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
               or
@@ -114,32 +152,38 @@ export default function LoginPage() {
             <span className="h-px flex-1 bg-line" />
           </div>
 
-          <form className="space-y-4" onSubmit={handleEmailSubmit}>
+          <form className="space-y-3.5 sm:space-y-4" onSubmit={handleEmailSubmit}>
             <label className="block">
               <span className="field-label">Email</span>
-              <input
-                autoComplete="email"
-                className="field"
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
-                required
-                type="email"
-                value={email}
-              />
+              <span className="relative block">
+                <MailIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input
+                  autoComplete="email"
+                  className="field pl-10"
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  type="email"
+                  value={email}
+                />
+              </span>
             </label>
 
             <label className="block">
               <span className="field-label">Password</span>
-              <input
-                autoComplete={isRegistering ? "new-password" : "current-password"}
-                className="field"
-                minLength={6}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="At least 6 characters"
-                required
-                type="password"
-                value={password}
-              />
+              <span className="relative block">
+                <LockIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input
+                  autoComplete={isRegistering ? "new-password" : "current-password"}
+                  className="field pl-10"
+                  minLength={6}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="At least 6 characters"
+                  required
+                  type="password"
+                  value={password}
+                />
+              </span>
             </label>
 
             {error ? (
@@ -158,7 +202,7 @@ export default function LoginPage() {
           </form>
 
           <button
-            className="btn-quiet mt-4 w-full"
+            className="btn-quiet mt-3 w-full"
             onClick={() => {
               setError("");
               setIsRegistering((current) => !current);

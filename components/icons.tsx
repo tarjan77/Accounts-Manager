@@ -104,3 +104,44 @@ export function SparkleIcon(props: IconProps) {
     </IconBase>
   );
 }
+
+export function MailIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect height="16" rx="2" width="20" x="2" y="4" />
+      <path d="m22 7-10 6L2 7" />
+    </IconBase>
+  );
+}
+
+export function LockIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect height="11" rx="2" width="18" x="3" y="11" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </IconBase>
+  );
+}
+
+export function GoogleIcon(props: IconProps) {
+  return (
+    <svg aria-hidden="true" height="20" viewBox="0 0 24 24" width="20" {...props}>
+      <path
+        d="M21.6 12.23c0-.74-.07-1.45-.19-2.13H12v4.02h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.89-1.74 2.98-4.3 2.98-7.41Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 22c2.7 0 4.96-.9 6.62-2.36l-3.24-2.5c-.9.6-2.05.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.06v2.58A10 10 0 0 0 12 22Z"
+        fill="#34A853"
+      />
+      <path
+        d="M6.41 13.98A6 6 0 0 1 6.1 12c0-.69.11-1.35.31-1.98V7.44H3.06A10 10 0 0 0 2 12c0 1.61.38 3.13 1.06 4.56l3.35-2.58Z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.9c1.47 0 2.79.5 3.83 1.49l2.86-2.86A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.94 5.44l3.35 2.58C7.2 7.66 9.4 5.9 12 5.9Z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}
