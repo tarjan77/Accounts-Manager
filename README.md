@@ -17,19 +17,24 @@ A Vercel-ready Next.js application for small cleaning businesses to manage custo
 - Customer directory with structured WA address fields
 - Cleaning service builder for end of lease, deep cleaning, windows, pressure cleaning, and extras
 - Multi-line PDF invoices with quantity, unit price, and amount columns
+- Gmail-based quote and invoice sending with PDF attachments
 
 ## Folder Structure
 
 ```text
 app/
-  api/logo/route.ts       Logo proxy used by invoice PDF generation
+  api/gmail/*             Gmail OAuth, disconnect, and send routes
+  api/logo/route.ts       Logo proxy used by PDF generation
+  oauth2callback/route.ts Google OAuth callback route
   dashboard/page.tsx      Protected dashboard route
-  customers/page.tsx      Protected customer CRUD route
-  jobs/page.tsx           Protected job, schedule, payment, invoice route
-  export/page.tsx         Protected CSV export route
-  login/page.tsx          Google and email/password sign-in
+  schedules/page.tsx      Protected schedule route
+  customers/page.tsx      Protected customer route
+  items/page.tsx          Protected service item route
+  quotes/page.tsx         Protected quote route
+  invoices/page.tsx       Protected invoice route
+  settings/page.tsx       Protected logo and Gmail settings
 components/               App shell, pages, forms, auth provider
-lib/                      Firebase, Firestore, invoice, CSV, formatting helpers
+lib/                      Firebase, Firestore, PDF, email, formatting helpers
 firestore.rules           UID-isolated Firestore security rules
 ```
 
@@ -45,6 +50,20 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 NEXT_PUBLIC_FIREBASE_APP_ID=...
 NEXT_PUBLIC_SHREE_LOGO_URL=https://www.shreecleaning.com/logo.png
+
+# Gmail automatic sending
+GOOGLE_OAUTH_CLIENT_ID=...
+GOOGLE_OAUTH_CLIENT_SECRET=...
+GOOGLE_OAUTH_REDIRECT_URI=https://shree-accounts.vercel.app/oauth2callback
+GMAIL_OAUTH_STATE_SECRET=use-a-long-random-string
+GMAIL_FROM_NAME=Shree Cleaning
+GMAIL_FROM_EMAIL=info@shreecleaning.com
+
+# Firebase service account used only by server routes
+FIREBASE_SERVICE_ACCOUNT_JSON=...
+# Or use these two values instead of FIREBASE_SERVICE_ACCOUNT_JSON:
+FIREBASE_SERVICE_ACCOUNT_CLIENT_EMAIL=...
+FIREBASE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
 ## Firebase Setup
@@ -56,11 +75,17 @@ NEXT_PUBLIC_SHREE_LOGO_URL=https://www.shreecleaning.com/logo.png
    - Google
    - Email/Password
 5. Create a Firestore database.
-6. Publish `firestore.rules` so users can only access their own data:
+6. Create a service account key for the server routes:
+   - Firebase Console -> Project settings -> Service accounts
+   - Click `Generate new private key`
+   - Add the full JSON to Vercel as `FIREBASE_SERVICE_ACCOUNT_JSON`, or add `client_email` and `private_key` separately.
+7. Publish `firestore.rules` so users can only access their own data, while server-only private Gmail tokens stay hidden from the browser:
 
 ```text
 users/{userId}/customers/{customerId}
 users/{userId}/jobs/{jobId}
+users/{userId}/settings/{settingId}
+users/{userId}/private/{document=**}  // denied to browser clients
 ```
 
 With the Firebase CLI, run:
@@ -69,7 +94,7 @@ With the Firebase CLI, run:
 firebase deploy --only firestore:rules
 ```
 
-7. Add your local and production domains in Firebase Authentication authorized domains:
+8. Add your local and production domains in Firebase Authentication authorized domains:
    - `localhost`
    - your Vercel domain
 
@@ -88,9 +113,32 @@ Open `http://localhost:3000`.
 
 1. Push this project to GitHub.
 2. Import the repository in Vercel.
-3. Add all `NEXT_PUBLIC_FIREBASE_*` environment variables in Vercel Project Settings.
+3. Add all `NEXT_PUBLIC_FIREBASE_*`, Gmail OAuth, and Firebase service account environment variables in Vercel Project Settings.
 4. Deploy.
 5. Add the deployed Vercel domain to Firebase Authentication authorized domains.
+
+## Gmail Automatic Email Setup
+
+1. In Google Cloud, enable the Gmail API for the project.
+2. In Google Auth Platform, add the scopes this app requests:
+   - `https://www.googleapis.com/auth/gmail.send`
+   - `https://www.googleapis.com/auth/userinfo.email`
+3. If the OAuth app is in testing mode, add your Gmail account as a test user.
+4. Create a `Web application` OAuth client.
+5. Add these OAuth values:
+   - Authorized JavaScript origin: `https://shree-accounts.vercel.app`
+   - Authorized redirect URI: `https://shree-accounts.vercel.app/oauth2callback`
+6. For local testing, also add:
+   - Authorized JavaScript origin: `http://localhost:3000`
+   - Authorized redirect URI: `http://localhost:3000/oauth2callback`
+   - Set local `GOOGLE_OAUTH_REDIRECT_URI=http://localhost:3000/oauth2callback`
+7. Copy the generated Client ID and Client Secret into Vercel as `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`.
+8. Set `GOOGLE_OAUTH_REDIRECT_URI=https://shree-accounts.vercel.app/oauth2callback` in Vercel.
+9. Set `GMAIL_OAUTH_STATE_SECRET` to any long random string.
+10. Redeploy the app.
+11. Open Settings in the app and click `Connect Gmail`.
+
+Quotes and invoices sent from the app will use Gmail API sending with a PDF copy attached.
 
 ## Firestore Data Model
 
@@ -103,6 +151,6 @@ users/{userId}/jobs/{jobId}
 
 This keeps each user's data isolated. The included Firestore rules enforce that isolation on the database.
 
-## Invoice Logo Behavior
+## Logo Behavior
 
-Invoices try to load `https://www.shreecleaning.com/logo.png` through the included Next.js logo route and embed it in the downloaded PDF. If the logo cannot load, invoice generation continues without crashing. A fallback logo can be uploaded from the dashboard and is stored locally in the browser for future invoice downloads on that device.
+Quotes and invoices use the company logo saved in Settings. If no uploaded logo is saved, PDFs try the Shree Cleaning website logo and continue gracefully if the logo cannot be loaded.

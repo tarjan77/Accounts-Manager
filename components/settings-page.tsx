@@ -1,5 +1,6 @@
 "use client";
 
+import { GmailConnectionCard } from "@/components/gmail-connection";
 import { LogoUploader } from "@/components/logo-uploader";
 import { PageHeader } from "@/components/page-header";
 
@@ -8,7 +9,8 @@ export function SettingsPage() {
     <>
       <PageHeader eyebrow="Account" title="Settings" />
 
-      <section className="max-w-3xl">
+      <section className="grid max-w-3xl gap-4">
+        <GmailConnectionCard />
         <LogoUploader />
       </section>
     </>

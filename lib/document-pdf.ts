@@ -17,7 +17,7 @@ const businessLines = [
   "https://www.shreecleaning.com/"
 ];
 
-type DocumentPdfInput = {
+export type DocumentPdfInput = {
   type: "Quote" | "Invoice";
   number: string;
   date: string;
@@ -69,7 +69,7 @@ function splitDescription(description: string) {
   return lines.length ? lines : ["Cleaning service"];
 }
 
-export async function generateDocumentPdf(input: DocumentPdfInput) {
+export async function createDocumentPdf(input: DocumentPdfInput) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 18;
@@ -243,5 +243,34 @@ export async function generateDocumentPdf(input: DocumentPdfInput) {
     drawLines(doc, terms, margin, footerY + 7, { lineHeight: 4.5 });
   }
 
+  return doc;
+}
+
+export async function generateDocumentPdf(input: DocumentPdfInput) {
+  const doc = await createDocumentPdf(input);
   doc.save(`${input.type.toLowerCase()}-${input.number}.pdf`);
+}
+
+export async function createDocumentPdfAttachment(input: DocumentPdfInput) {
+  const doc = await createDocumentPdf(input);
+  const arrayBuffer = doc.output("arraybuffer");
+
+  return {
+    filename: `${input.type.toLowerCase()}-${input.number}.pdf`,
+    contentType: "application/pdf",
+    base64: arrayBufferToBase64(arrayBuffer)
+  };
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.slice(index, index + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
 }

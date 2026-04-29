@@ -140,3 +140,9 @@ export type ReceivedPaymentInput = Omit<ReceivedPayment, "id">;
 export type BusinessSettings = {
   logoDataUrl?: string;
 };
+
+export type GmailConnection = {
+  connected: boolean;
+  email: string;
+  updatedAt?: string;
+};

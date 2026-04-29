@@ -9,6 +9,7 @@ import type {
   BusinessSettings,
   CatalogItem,
   Customer,
+  GmailConnection,
   Job,
   Quote,
   ReceivedPayment
@@ -72,6 +73,50 @@ export function useBusinessSettings(userId?: string) {
         });
       },
       (error) => setState({ data: {}, loading: false, error: error.message })
+    );
+  }, [userId]);
+
+  return state;
+}
+
+export function useGmailConnection(userId?: string) {
+  const [state, setState] = useState<{
+    data: GmailConnection;
+    loading: boolean;
+    error: string;
+  }>({
+    data: { connected: false, email: "" },
+    loading: true,
+    error: ""
+  });
+
+  useEffect(() => {
+    if (!userId || !db) {
+      setState({ data: { connected: false, email: "" }, loading: false, error: "" });
+      return;
+    }
+
+    return onSnapshot(
+      doc(db, "users", userId, "settings", "gmail"),
+      (snapshot) => {
+        const value = snapshot.exists() ? snapshot.data() : {};
+
+        setState({
+          data: {
+            connected: Boolean(value.connected),
+            email: String(value.email || ""),
+            updatedAt: String(value.updatedAt || "")
+          },
+          loading: false,
+          error: ""
+        });
+      },
+      (error) =>
+        setState({
+          data: { connected: false, email: "" },
+          loading: false,
+          error: error.message
+        })
     );
   }, [userId]);
 

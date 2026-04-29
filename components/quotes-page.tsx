@@ -19,7 +19,8 @@ import {
   nextDocumentNumber
 } from "@/lib/documents";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
-import { generateDocumentPdf } from "@/lib/document-pdf";
+import { createDocumentPdfAttachment, generateDocumentPdf } from "@/lib/document-pdf";
+import { emailButton, escapeHtml, sendConnectedGmailEmail } from "@/lib/email-client";
 import { useBusinessSettings, useCustomers, useItems, useQuotes } from "@/lib/hooks";
 import type {
   CatalogItem,
@@ -137,41 +138,79 @@ export function QuotesPage() {
     setSaving(true);
     setMessage("");
 
-    const input: QuoteInput = {
+    const savedInput: QuoteInput = {
       ...form,
       customerEmail: cleanEmail(form.customerEmail),
       lineItems: form.lineItems.filter((item) => item.description.trim()),
-      status: sendNow ? "Sent" : form.status,
       logoDataUrl: settings.data.logoDataUrl || form.logoDataUrl || "",
-      sentAt: sendNow ? new Date().toISOString() : form.sentAt
+      sentAt: form.sentAt
     };
+
+    let quoteId = editing?.id || savedInput.publicToken;
+    let saved = false;
 
     try {
       if (editing) {
-        await updateQuote(user.uid, editing.id, input);
+        await updateQuote(user.uid, editing.id, savedInput);
       } else {
-        await createQuote(user.uid, input);
+        quoteId = await createQuote(user.uid, savedInput);
       }
+      saved = true;
 
       if (sendNow) {
-        openEmailDraft(input);
-        setMessage("Quote saved. An email draft opened with the customer quote link.");
+        const sentInput: QuoteInput = {
+          ...savedInput,
+          status: "Sent",
+          sentAt: new Date().toISOString()
+        };
+
+        await sendQuoteEmail(sentInput);
+        await updateQuote(user.uid, quoteId, sentInput);
+        setMessage("Quote saved and emailed to the customer.");
       } else {
         setMessage("Quote saved as draft.");
       }
 
       closeForm();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not save quote.");
+      const errorMessage = error instanceof Error ? error.message : "Could not save quote.";
+      if (saved && sendNow) {
+        setMessage(`Quote saved, but email was not sent: ${errorMessage}`);
+        closeForm();
+      } else {
+        setMessage(errorMessage);
+      }
     } finally {
       setSaving(false);
     }
   }
 
-  function openEmailDraft(quote: QuoteInput) {
+  async function sendQuoteEmail(quote: QuoteInput) {
     const link = `${window.location.origin}/quote/${quote.publicToken}`;
     const subject = `Quote ${quote.quoteNumber} from Shree Cleaning`;
-    const body = [
+    const attachment = await createDocumentPdfAttachment({
+      type: "Quote",
+      number: quote.quoteNumber,
+      date: quote.date,
+      expiryDate: quote.expiryDate,
+      customerName: quote.customerName,
+      customerEmail: quote.customerEmail,
+      customerPhone: quote.customerPhone,
+      customerAddress: quote.customerAddress,
+      lineItems: quote.lineItems,
+      notes: quote.notes,
+      terms: quote.terms,
+      status: quote.status,
+      logoDataUrl: quote.logoDataUrl || settings.data.logoDataUrl
+    });
+    const html = [
+      `<p>Dear ${escapeHtml(quote.customerName || "Customer")},</p>`,
+      "<p>Thank you for contacting Shree Cleaning. Your quote is ready to review.</p>",
+      `<p>${emailButton("View quote", link)}</p>`,
+      "<p>A PDF copy is attached for your records.</p>",
+      "<p>Regards,<br/>Shree Cleaning</p>"
+    ].join("");
+    const text = [
       `Dear ${quote.customerName || "Customer"},`,
       "",
       "Thank you for contacting Shree Cleaning. Your quote is ready to review.",
@@ -182,7 +221,13 @@ export function QuotesPage() {
       "Shree Cleaning"
     ].join("\n");
 
-    window.location.href = `mailto:${quote.customerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    await sendConnectedGmailEmail(await user!.getIdToken(), {
+      to: quote.customerEmail,
+      subject,
+      html,
+      text,
+      attachments: [attachment]
+    });
   }
 
   function selectedCustomer(customerId: string) {

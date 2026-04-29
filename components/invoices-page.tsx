@@ -11,13 +11,15 @@ import { createInvoice, updateInvoice } from "@/lib/firestore";
 import { formatAddress } from "@/lib/address";
 import {
   blankLineItem,
+  cleanEmail,
   defaultInvoiceNotes,
   defaultInvoiceTerms,
   documentTotal,
   nextDocumentNumber
 } from "@/lib/documents";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
-import { generateDocumentPdf } from "@/lib/document-pdf";
+import { createDocumentPdfAttachment, generateDocumentPdf } from "@/lib/document-pdf";
+import { escapeHtml, sendConnectedGmailEmail } from "@/lib/email-client";
 import { useBusinessSettings, useCustomers, useInvoices, useItems } from "@/lib/hooks";
 import type {
   BusinessInvoice,
@@ -122,43 +124,54 @@ export function InvoicesPage() {
       return;
     }
 
+    if (sendNow && !cleanEmail(form.customerEmail)) {
+      setMessage("Add the customer's email before sending the invoice.");
+      return;
+    }
+
     setSaving(true);
     setMessage("");
 
-    const input: BusinessInvoiceInput = {
+    const savedInput: BusinessInvoiceInput = {
       ...form,
+      customerEmail: cleanEmail(form.customerEmail),
       lineItems: form.lineItems.filter((item) => item.description.trim()),
-      status: sendNow && form.status === "Draft" ? "Sent" : form.status
+      status: form.status
     };
+
+    let invoiceId = editing?.id || "";
+    let saved = false;
 
     try {
       if (editing) {
-        await updateInvoice(user.uid, editing.id, input);
+        await updateInvoice(user.uid, editing.id, savedInput);
       } else {
-        await createInvoice(user.uid, input);
+        invoiceId = await createInvoice(user.uid, savedInput);
       }
+      saved = true;
 
-      if (sendNow && input.customerEmail) {
-        const subject = `Invoice ${input.invoiceNumber} from Shree Cleaning`;
-        const body = [
-          `Dear ${input.customerName || "Customer"},`,
-          "",
-          "Your Shree Cleaning invoice is ready. Bank transfer is preferred to avoid processing fees.",
-          "",
-          `Invoice total: ${formatCurrency(documentTotal(input.lineItems))}`,
-          "",
-          "Regards,",
-          "Shree Cleaning"
-        ].join("\n");
-        window.location.href = `mailto:${input.customerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        setMessage("Invoice saved. An email draft opened for the customer.");
+      if (sendNow) {
+        const sentInput: BusinessInvoiceInput = {
+          ...savedInput,
+          status: savedInput.status === "Draft" ? "Sent" : savedInput.status
+        };
+
+        await sendInvoiceEmail(sentInput);
+        await updateInvoice(user.uid, invoiceId, sentInput);
+        setMessage("Invoice saved and emailed to the customer.");
       } else {
         setMessage("Invoice saved.");
       }
 
       closeForm();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not save invoice.");
+      const errorMessage = error instanceof Error ? error.message : "Could not save invoice.";
+      if (saved && sendNow) {
+        setMessage(`Invoice saved, but email was not sent: ${errorMessage}`);
+        closeForm();
+      } else {
+        setMessage(errorMessage);
+      }
     } finally {
       setSaving(false);
     }
@@ -180,6 +193,53 @@ export function InvoicesPage() {
       paymentOptions: invoice.paymentOptions,
       status: invoice.status,
       logoDataUrl: settings.data.logoDataUrl
+    });
+  }
+
+  async function sendInvoiceEmail(invoice: BusinessInvoiceInput) {
+    const total = formatCurrency(documentTotal(invoice.lineItems));
+    const subject = `Invoice ${invoice.invoiceNumber} from Shree Cleaning`;
+    const attachment = await createDocumentPdfAttachment({
+      type: "Invoice",
+      number: invoice.invoiceNumber,
+      date: invoice.date,
+      dueDate: invoice.dueDate,
+      customerName: invoice.customerName,
+      customerEmail: invoice.customerEmail,
+      customerPhone: invoice.customerPhone,
+      customerAddress: invoice.customerAddress,
+      lineItems: invoice.lineItems,
+      notes: invoice.notes,
+      terms: invoice.terms,
+      paymentOptions: invoice.paymentOptions,
+      status: invoice.status,
+      logoDataUrl: settings.data.logoDataUrl
+    });
+    const html = [
+      `<p>Dear ${escapeHtml(invoice.customerName || "Customer")},</p>`,
+      "<p>Your Shree Cleaning invoice is attached.</p>",
+      `<p><strong>Invoice total:</strong> ${escapeHtml(total)}</p>`,
+      "<p>Bank transfer is preferred to avoid payment processing fees.</p>",
+      "<p>Regards,<br/>Shree Cleaning</p>"
+    ].join("");
+    const text = [
+      `Dear ${invoice.customerName || "Customer"},`,
+      "",
+      "Your Shree Cleaning invoice is attached.",
+      "",
+      `Invoice total: ${total}`,
+      "Bank transfer is preferred to avoid payment processing fees.",
+      "",
+      "Regards,",
+      "Shree Cleaning"
+    ].join("\n");
+
+    await sendConnectedGmailEmail(await user!.getIdToken(), {
+      to: invoice.customerEmail,
+      subject,
+      html,
+      text,
+      attachments: [attachment]
     });
   }
 
