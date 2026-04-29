@@ -2,25 +2,49 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import {
+  BriefcaseIcon,
   CalendarIcon,
   DownloadIcon,
+  FileIcon,
   LayoutIcon,
-  UsersIcon
+  MoreIcon,
+  ReceiptIcon,
+  UsersIcon,
+  WalletIcon
 } from "@/components/icons";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutIcon },
-  { href: "/jobs", label: "Schedule", icon: CalendarIcon },
-  { href: "/customers", label: "Clients", icon: UsersIcon },
-  { href: "/export", label: "Export", icon: DownloadIcon }
+  { href: "/jobs", label: "Schedules", icon: CalendarIcon },
+  { href: "/customers", label: "Customers", icon: UsersIcon },
+  { href: "/items", label: "Items", icon: BriefcaseIcon },
+  { href: "/quotes", label: "Quotes", icon: ReceiptIcon },
+  { href: "/invoices", label: "Invoices", icon: FileIcon },
+  { href: "/payments", label: "Payments Received", icon: WalletIcon }
+];
+
+const mobilePrimaryItems = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutIcon },
+  { href: "/jobs", label: "Schedules", icon: CalendarIcon },
+  { href: "/quotes", label: "Quotes", icon: ReceiptIcon },
+  { href: "/invoices", label: "Invoices", icon: FileIcon }
+];
+
+const moreItems = [
+  { href: "/customers", label: "Customers", icon: UsersIcon },
+  { href: "/items", label: "Items", icon: BriefcaseIcon },
+  { href: "/payments", label: "Payments Received", icon: WalletIcon },
+  { href: "/export", label: "Export bookings", icon: DownloadIcon }
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOutUser } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
   const initials =
     user?.displayName
       ?.split(" ")
@@ -33,6 +57,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     await signOutUser();
     router.replace("/login");
   }
+
+  const moreActive = moreItems.some((item) => pathname === item.href);
 
   return (
     <div className="min-h-screen bg-mist lg:h-screen lg:min-h-0 lg:overflow-hidden">
@@ -105,8 +131,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-white/96 shadow-[0_-10px_30px_rgba(23,32,28,0.08)] backdrop-blur lg:hidden">
-          {navItems.map((item) => {
+        {moreOpen ? (
+          <div className="fixed inset-x-3 bottom-20 z-40 rounded-lg border border-line bg-white p-2 shadow-soft lg:hidden">
+            {moreItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+
+              return (
+                <Link
+                  className={`flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold ${
+                    isActive ? "bg-brand-50 text-brand-700" : "text-muted"
+                  }`}
+                  href={item.href}
+                  key={item.href}
+                  onClick={() => setMoreOpen(false)}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ) : null}
+
+        <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-white/96 shadow-[0_-10px_30px_rgba(23,32,28,0.08)] backdrop-blur lg:hidden">
+          {mobilePrimaryItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
 
@@ -129,6 +178,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          <button
+            className={`flex min-h-16 flex-col items-center justify-center gap-1 px-2 text-center text-[11px] font-semibold ${
+              moreActive || moreOpen ? "text-brand-700" : "text-muted"
+            }`}
+            onClick={() => setMoreOpen((current) => !current)}
+            type="button"
+          >
+            <span
+              className={`flex h-8 w-10 items-center justify-center rounded-md ${
+                moreActive || moreOpen ? "bg-brand-50" : ""
+              }`}
+            >
+              <MoreIcon className="h-5 w-5" />
+            </span>
+            More
+          </button>
         </nav>
       </div>
     </div>

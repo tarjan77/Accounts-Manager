@@ -20,6 +20,18 @@ export type InvoiceLineItem = {
   unitPrice: number;
 };
 
+export type CatalogItem = {
+  id: string;
+  type: "Service" | "Goods";
+  name: string;
+  description: string;
+  unit: string;
+  rate: number;
+  taxable: boolean;
+};
+
+export type CatalogItemInput = Omit<CatalogItem, "id">;
+
 export type Customer = {
   id: string;
   name: string;
@@ -57,3 +69,64 @@ export type Job = {
 };
 
 export type JobInput = Omit<Job, "id">;
+
+export type QuoteStatus = "Draft" | "Sent" | "Accepted" | "Declined" | "Invoiced";
+
+export type Quote = {
+  id: string;
+  ownerId: string;
+  publicToken: string;
+  quoteNumber: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  date: string;
+  expiryDate?: string;
+  lineItems: InvoiceLineItem[];
+  notes: string;
+  terms: string;
+  status: QuoteStatus;
+  total: number;
+  sentAt?: string;
+  respondedAt?: string;
+};
+
+export type QuoteInput = Omit<Quote, "id" | "ownerId" | "total">;
+
+export type InvoiceStatus = "Draft" | "Sent" | "Due Today" | "Overdue" | "Paid";
+
+export type BusinessInvoice = {
+  id: string;
+  invoiceNumber: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  date: string;
+  dueDate: string;
+  lineItems: InvoiceLineItem[];
+  notes: string;
+  terms: string;
+  paymentOptions: Array<"Bank Transfer" | "Stripe" | "PayPal">;
+  status: InvoiceStatus;
+  total: number;
+  balanceDue: number;
+};
+
+export type BusinessInvoiceInput = Omit<BusinessInvoice, "id" | "total" | "balanceDue">;
+
+export type ReceivedPayment = {
+  id: string;
+  date: string;
+  paymentNumber: string;
+  referenceNumber?: string;
+  customerName: string;
+  invoiceNumber?: string;
+  mode: "Bank Transfer" | "Cash" | "Stripe" | "PayPal" | "Other";
+  amount: number;
+};
+
+export type ReceivedPaymentInput = Omit<ReceivedPayment, "id">;

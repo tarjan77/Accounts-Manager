@@ -149,49 +149,79 @@ export function CustomersPage() {
           </label>
         </div>
 
-        {loading ? (
-          <p className="p-5 text-sm text-muted">Loading customers...</p>
-        ) : error ? (
-          <p className="p-5 text-sm text-danger-600">{error}</p>
-        ) : filteredCustomers.length ? (
-          <div className="divide-y divide-line">
-            {filteredCustomers.map((customer) => (
-              <article
-                className="grid gap-4 p-5 md:grid-cols-[1fr_auto] md:items-start"
-                key={customer.id}
-              >
-                <div>
-                  <h4 className="font-semibold text-ink">{customer.name}</h4>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-                    <span>{customer.phone}</span>
-                    {customer.email ? <span>{customer.email}</span> : null}
-                  </div>
-                  <p className="mt-3 max-w-2xl text-sm text-ink">
-                    {formatAddress(customer) || "No address saved"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className="btn-secondary"
-                    onClick={() => setEditing(customer)}
-                    type="button"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn-danger"
-                    onClick={() => handleDelete(customer)}
-                    type="button"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="p-5 text-sm text-muted">No matching customers.</p>
-        )}
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+            <thead className="bg-mist text-xs uppercase tracking-[0.12em] text-muted">
+              <tr>
+                <th className="border-b border-line px-5 py-3 font-semibold">Name</th>
+                <th className="border-b border-line px-5 py-3 font-semibold">Email</th>
+                <th className="border-b border-line px-5 py-3 font-semibold">Phone</th>
+                <th className="border-b border-line px-5 py-3 font-semibold">Address</th>
+                <th className="border-b border-line px-5 py-3 font-semibold" />
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td className="px-5 py-5 text-muted" colSpan={5}>
+                    Loading customers...
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td className="px-5 py-5 text-danger-600" colSpan={5}>
+                    {error}
+                  </td>
+                </tr>
+              ) : filteredCustomers.length ? (
+                filteredCustomers.map((customer) => (
+                  <tr key={customer.id}>
+                    <td className="border-b border-line px-5 py-4">
+                      <button
+                        className="font-semibold text-brand-700"
+                        onClick={() => setEditing(customer)}
+                        type="button"
+                      >
+                        {customer.name}
+                      </button>
+                    </td>
+                    <td className="border-b border-line px-5 py-4 text-muted">
+                      {customer.email || "-"}
+                    </td>
+                    <td className="border-b border-line px-5 py-4">{customer.phone}</td>
+                    <td className="min-w-[260px] border-b border-line px-5 py-4 text-muted">
+                      {formatAddress(customer) || "No address saved"}
+                    </td>
+                    <td className="border-b border-line px-5 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          className="btn-secondary min-h-9 px-3"
+                          onClick={() => setEditing(customer)}
+                          type="button"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn-danger min-h-9 px-3"
+                          onClick={() => handleDelete(customer)}
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-5 py-5 text-muted" colSpan={5}>
+                    No matching customers.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <Modal

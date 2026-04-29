@@ -95,6 +95,47 @@ export function FileIcon(props: IconProps) {
   );
 }
 
+export function BriefcaseIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1" />
+      <rect height="14" rx="2" width="20" x="2" y="6" />
+      <path d="M2 12h20" />
+      <path d="M12 11v2" />
+    </IconBase>
+  );
+}
+
+export function ReceiptIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 2v20l3-2 3 2 3-2 3 2 4-2V2l-4 2-3-2-3 2-3-2-3 2Z" />
+      <path d="M8 8h8" />
+      <path d="M8 12h8" />
+      <path d="M8 16h5" />
+    </IconBase>
+  );
+}
+
+export function WalletIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M19 7V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h14a2 2 0 0 1 2 2v5a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7" />
+      <path d="M17 14h.01" />
+    </IconBase>
+  );
+}
+
+export function MoreIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="5" cy="12" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+    </IconBase>
+  );
+}
+
 export function SparkleIcon(props: IconProps) {
   return (
     <IconBase {...props}>

@@ -5,5 +5,22 @@ service cloud.firestore {
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    match /publicQuotes/{quoteId} {
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.publicToken == quoteId;
+
+      allow read: if resource.data.publicToken == quoteId
+        || (request.auth != null && resource.data.ownerId == request.auth.uid);
+
+      allow update: if (request.auth != null && resource.data.ownerId == request.auth.uid)
+        || (
+          resource.data.publicToken == quoteId
+          && request.resource.data.diff(resource.data).changedKeys()
+            .hasOnly(["status", "respondedAt", "updatedAt"])
+          && request.resource.data.status in ["Accepted", "Declined"]
+        );
+    }
   }
 }
